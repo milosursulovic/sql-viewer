@@ -1,3 +1,108 @@
+<template>
+  <main class="p-6 max-w-6xl mx-auto space-y-6">
+    <h1 class="text-3xl font-bold text-blue-800">SQLite Pregledač</h1>
+
+    <div class="border p-4 rounded-lg shadow bg-white">
+      <label class="block mb-2 font-semibold">Otpremi SQLite fajl</label>
+      <input
+        type="file"
+        @change="handleFileUpload"
+        accept=".sqlite,.db"
+        class="border p-2 rounded w-full"
+      />
+    </div>
+
+    <div v-if="db" class="border p-4 rounded-lg shadow bg-white space-y-4">
+      <div>
+        <label class="block font-medium mb-1">Tabele</label>
+        <select
+          class="border px-4 py-2 rounded w-full bg-gray-50"
+          @change="query = `SELECT * FROM \`${$event.target.value}\``"
+        >
+          <option disabled selected>Izaberi tabelu</option>
+          <option v-for="table in tables" :key="table" :value="table">
+            {{ table }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">SQL Upit</label>
+        <textarea
+          v-model="query"
+          class="w-full border p-2 rounded font-mono bg-gray-50"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <button
+        @click="runQuery"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Izvrši
+      </button>
+
+      <p v-if="error" class="text-red-600 mt-2">{{ error }}</p>
+    </div>
+
+    <div
+      v-if="results.columns.length > 0"
+      class="overflow-x-auto border p-4 rounded-lg shadow bg-white"
+    >
+      <div class="mb-4 flex justify-between items-center">
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Pretraga..."
+          class="border p-2 rounded w-full max-w-xs"
+        />
+        <div class="ml-4 text-sm text-gray-600">
+          Strana {{ currentPage }} od {{ totalPages }}
+        </div>
+      </div>
+
+      <table class="min-w-full text-sm text-left border">
+        <thead>
+          <tr class="bg-gray-100 border-b">
+            <th
+              v-for="col in results.columns"
+              :key="col"
+              class="p-2 font-semibold"
+            >
+              {{ col }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, idx) in paginatedValues" :key="idx" class="border-t">
+            <td v-for="(cell, i) in row" :key="i" class="p-2 whitespace-nowrap">
+              {{ cell }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="flex justify-between items-center mt-4">
+        <button
+          :disabled="currentPage <= 1"
+          @click="currentPage--"
+          class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+        >
+          Prethodna
+        </button>
+
+        <button
+          :disabled="currentPage >= totalPages"
+          @click="currentPage++"
+          class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+        >
+          Sledeća
+        </button>
+      </div>
+    </div>
+  </main>
+</template>
+
 <script setup>
 import initSqlJs from "sql.js";
 import { ref, reactive, onMounted, computed } from "vue";
@@ -78,109 +183,8 @@ function runQuery() {
     console.error(e);
   }
 }
+
+onMounted(() => {
+  document.title = "SQLite Pregledač";
+});
 </script>
-
-<template>
-  <main class="p-6 max-w-6xl mx-auto space-y-6">
-    <h1 class="text-3xl font-bold text-blue-800">SQLite Viewer</h1>
-
-    <div class="border p-4 rounded-lg shadow bg-white">
-      <label class="block mb-2 font-semibold">Upload SQLite File</label>
-      <input
-        type="file"
-        @change="handleFileUpload"
-        accept=".sqlite,.db"
-        class="border p-2 rounded w-full"
-      />
-    </div>
-
-    <div v-if="db" class="border p-4 rounded-lg shadow bg-white space-y-4">
-      <div>
-        <label class="block font-medium mb-1">Tables</label>
-        <select
-          class="border px-4 py-2 rounded w-full bg-gray-50"
-          @change="query = `SELECT * FROM \`${$event.target.value}\``"
-        >
-          <option disabled selected>Choose table</option>
-          <option v-for="table in tables" :key="table" :value="table">
-            {{ table }}
-          </option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block font-medium mb-1">SQL Query</label>
-        <textarea
-          v-model="query"
-          class="w-full border p-2 rounded font-mono bg-gray-50"
-          rows="3"
-        ></textarea>
-      </div>
-
-      <button
-        @click="runQuery"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Execute
-      </button>
-
-      <p v-if="error" class="text-red-600 mt-2">{{ error }}</p>
-    </div>
-
-    <div
-      v-if="results.columns.length > 0"
-      class="overflow-x-auto border p-4 rounded-lg shadow bg-white"
-    >
-      <div class="mb-4 flex justify-between items-center">
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="Search..."
-          class="border p-2 rounded w-full max-w-xs"
-        />
-        <div class="ml-4 text-sm text-gray-600">
-          Page {{ currentPage }} of {{ totalPages }}
-        </div>
-      </div>
-
-      <table class="min-w-full text-sm text-left border">
-        <thead>
-          <tr class="bg-gray-100 border-b">
-            <th
-              v-for="col in results.columns"
-              :key="col"
-              class="p-2 font-semibold"
-            >
-              {{ col }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(row, idx) in paginatedValues" :key="idx" class="border-t">
-            <td v-for="(cell, i) in row" :key="i" class="p-2 whitespace-nowrap">
-              {{ cell }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="flex justify-between items-center mt-4">
-        <button
-          :disabled="currentPage <= 1"
-          @click="currentPage--"
-          class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
-        >
-          Previous
-        </button>
-
-        <button
-          :disabled="currentPage >= totalPages"
-          @click="currentPage++"
-          class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  </main>
-</template>
